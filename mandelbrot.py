@@ -5,60 +5,76 @@ import os
 
 class Mandelbrot():
     def __init__(self, canvasW, canvasH, x=-0.75, y=0, m=1.5, iterations=None, w=None, h=None, zoomFactor=0.1, multi=True):
-        self.w, self.h = (round(canvasW*0.9), round(canvasH*0.9)) if None in {w, h} else w, h
-        self.iterations = 200 if iterations is None else iterations
-        self.xCenter, self.yCenter = x, y
+        # our class has 10 parameters related to the tkinter canvas used in the framework, parameters for the mandelbrot, multiprocessing and the zoom
+        self.width, self.height = (round(canvasW*0.9), round(canvasH*0.9)) if None in {w, h} else w, h
+
+        # if we don't precise the iterations, it will automatically be set at 256. Otherwise, it will take the value set
+        if iterations is None:
+            self.iterations = 256
+        else:
+            iterations
+
+        self.xCenter = x #adding the attribute xCenter. The drawing is centered on this x
+        self.yCenter = y #adding the attribute yCenter. The drawing is centered on this y
+
+        #Canvas height and width. We scale the size to match the size of the largest dimension
         if canvasW > canvasH:
             self.xDelta = m/(canvasH/canvasW)
             self.yDelta = m
         else:
             self.yDelta = m/(canvasW/canvasH)
             self.xDelta = m
+
         self.delta = m
         self.multi = multi
-        self.xmin = x - self.xDelta
-        self.xmax = x + self.xDelta
-        self.ymin = y - self.yDelta
-        self.ymax = y + self.yDelta
-        self.zoomFactor = zoomFactor
-        self.yScaleFactor = self.h/canvasH
-        self.xScaleFactor = self.w/canvasW
-        self.c, self.z = 0, 0
+
+        #convert to a bounded box, same logic as Part 1 but translated in OOP
+        self.min_x = x - self.xDelta /2
+        self.max_x = x + self.xDelta /2 # add /2, to see if it works well
+        self.min_y = y - self.yDelta /2
+        self.max_y = y + self.yDelta /2
+
+        self.zoomFactor = zoomFactor #adding the attribute zoomFactor = 0.1 
+        self.yScaleFactor = self.height/canvasH
+        self.xScaleFactor = self.width/canvasW
+
+        self.c = 0
+        self.z = 0
 
     def shiftView(self, event):
-        self.xCenter = translate(event.x*self.xScaleFactor, 0, self.w, self.xmin, self.xmax)
-        self.yCenter = translate(event.y*self.yScaleFactor, self.h, 0, self.ymin, self.ymax)
-        self.xmax = self.xCenter + self.xDelta
-        self.ymax = self.yCenter + self.yDelta
-        self.xmin = self.xCenter - self.xDelta
-        self.ymin = self.yCenter - self.yDelta
+        self.xCenter = translate(event.x*self.xScaleFactor, 0, self.width, self.min_x, self.max_x)
+        self.yCenter = translate(event.y*self.yScaleFactor, self.height, 0, self.min_y, self.max_y)
+        self.max_x = self.xCenter + self.xDelta
+        self.max_y = self.yCenter + self.yDelta
+        self.min_x = self.xCenter - self.xDelta
+        self.min_y = self.yCenter - self.yDelta
 
     def zoomOut(self, event):
-        self.xCenter = translate(event.x*self.xScaleFactor, 0, self.w, self.xmin, self.xmax)
-        self.yCenter = translate(event.y*self.yScaleFactor, self.h, 0, self.ymin, self.ymax)
+        self.xCenter = translate(event.x*self.xScaleFactor, 0, self.width, self.min_x, self.max_x)
+        self.yCenter = translate(event.y*self.yScaleFactor, self.height, 0, self.min_y, self.max_y)
         self.xDelta /= self.zoomFactor
         self.yDelta /= self.zoomFactor
         self.delta /= self.zoomFactor
-        self.xmax = self.xCenter + self.xDelta
-        self.ymax = self.yCenter + self.yDelta
-        self.xmin = self.xCenter - self.xDelta
-        self.ymin = self.yCenter - self.yDelta
+        self.max_x = self.xCenter + self.xDelta
+        self.max_y = self.yCenter + self.yDelta
+        self.min_x = self.xCenter - self.xDelta
+        self.min_y = self.yCenter - self.yDelta
 
     def zoomIn(self, event):
-        self.xCenter = translate(event.x*self.xScaleFactor, 0, self.w, self.xmin, self.xmax)
-        self.yCenter = translate(event.y*self.yScaleFactor, self.h, 0, self.ymin, self.ymax)
-        self.xDelta *= self.zoomFactor
+        self.xCenter = translate(event.x*self.xScaleFactor, 0, self.width, self.min_x, self.max_x)
+        self.yCenter = translate(event.y*self.yScaleFactor, self.height, 0, self.min_y, self.max_y)
+        self.xDelta *= self.zoomFactor # self.xDelta * self.zoomFactor
         self.yDelta *= self.zoomFactor
         self.delta *= self.zoomFactor
-        self.xmax = self.xCenter + self.xDelta
-        self.ymax = self.yCenter + self.yDelta
-        self.xmin = self.xCenter - self.xDelta
-        self.ymin = self.yCenter - self.yDelta
+        self.max_x = self.xCenter + self.xDelta
+        self.max_y = self.yCenter + self.yDelta
+        self.min_x = self.xCenter - self.xDelta
+        self.min_y = self.yCenter - self.yDelta
 
     def getPixels(self):
         coordinates = []
-        for x in range(self.w):
-            for y in range(self.h):
+        for x in range(self.width):
+            for y in range(self.height):
                 coordinates.append((x, y))
         if self.multi:
             pool = Pool()
@@ -73,8 +89,8 @@ class Mandelbrot():
             self.pixels = pixels
 
     def getEscapeTime(self, x, y):
-        re = translate(x, 0, self.w, self.xmin, self.xmax)
-        im = translate(y, 0, self.h, self.ymax, self.ymin)
+        re = translate(x, 0, self.width, self.min_x, self.max_x)
+        im = translate(y, 0, self.height, self.max_y, self.min_y)
         z, c = complex(re, im), complex(re, im)
         for i in range(1, self.iterations):
             if abs(z) > 2:
