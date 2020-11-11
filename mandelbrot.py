@@ -6,7 +6,12 @@ import os
 class Mandelbrot():
     def __init__(self, canvasW, canvasH, x=-0.75, y=0, m=1.5, iterations=None, w=None, h=None, zoomFactor=0.1, multi=True):
         # our class has 10 parameters related to the tkinter canvas used in the framework, parameters for the mandelbrot, multiprocessing and the zoom
-        self.width, self.height = (round(canvasW*0.9), round(canvasH*0.9)) if None in {w, h} else w, h
+
+        if None in {w, h}:
+            self.width = round(canvasW*0.9)
+            self.height = round(canvasH*0.9)
+        else:
+            w, h
 
         # if we don't precise the iterations, it will automatically be set at 256. Otherwise, it will take the value set
         if iterations is None:
@@ -34,7 +39,7 @@ class Mandelbrot():
         self.min_y = y - self.yDelta /2
         self.max_y = y + self.yDelta /2
 
-        self.zoomFactor = zoomFactor #adding the attribute zoomFactor = 0.1 
+        self.zoomFactor = zoomFactor #adding the attribute zoomFactor = 0.1
         self.yScaleFactor = self.height/canvasH
         self.xScaleFactor = self.width/canvasW
 
